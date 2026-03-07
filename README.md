@@ -1,1 +1,8 @@
-Skeleton [GitHub Actions](https://code-maven.com/github-actions) for a Perl project with a Makefile.PL
+# GitHub Workflow for Perl projects
+
+For Perl projects with Makefile.PL
+
+Running on native OSes.
+
+For the full list of examples and explanations visit https://git.code-maven.com/
+

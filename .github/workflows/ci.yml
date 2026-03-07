@@ -1,22 +1,25 @@
 name: CI
 
 on:
-  push:
-  pull_request:
-  workflow_dispatch:
-#  schedule:
-#    - cron: '42 5 * * *'
+    push:
+    pull_request:
+    workflow_dispatch:
+#    schedule:
+#        - cron: '42 5 * * 0'
+
 
 jobs:
-  test:
+  perl-job:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, macos-latest, windows-latest]
-        perl: [ '5.30', '5.36' ]
-        exclude:
-          - runner: windows-latest
-            perl: '5.36'
+        runner:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        perl:
+          - '5.30'
+          - '5.42'
 
     runs-on: ${{matrix.runner}}
     name: OS ${{matrix.runner}} Perl ${{matrix.perl}}
@@ -28,43 +31,24 @@ jobs:
       uses: shogo82148/actions-setup-perl@v1
       with:
           perl-version: ${{ matrix.perl }}
-          distribution: ${{ ( matrix.runner == 'windows-latest' && 'strawberry' ) || 'default' }}
+          distribution: ${{ ( startsWith( matrix.runner, 'windows-' ) && 'strawberry' ) || 'default' }}
 
-    - name: Show Perl Version
+    - name: Install dependencies
       run: |
-        perl -v
+          cpanm --notest Module::Install --version
+          cpanm --installdeps --notest --version .
 
-    - name: Install Modules
+    - name: Run Tests on Linux and macOS
+      if: ${{ matrix.runner != 'windows-latest' }}
       run: |
-        cpanm -v
-        cpanm --installdeps --with-develop --notest .
-        # --with-configure
-        # --with-recommends, --with-suggests
+          perl Makefile.PL
+          make
+          make test
 
-    - name: Show Errors on Windows
-      if:  ${{ failure() && matrix.runner == 'windows-latest' }}
+    - name: Run Tests on Windows
+      if: ${{ matrix.runner == 'windows-latest' }}
       run: |
-         ls -l C:/Users/
-         ls -l C:/Users/RUNNER~1/
-         cat C:/Users/runneradmin/.cpanm/work/*/build.log
-
-    - name: Show Errors on Ubuntu
-      if:  ${{ failure() && startsWith( matrix.runner, 'ubuntu-')}}
-      run: |
-         cat /home/runner/.cpanm/work/*/build.log
-
-    - name: Show Errors on OSX
-      if:  ${{ failure() && startsWith( matrix.runner, 'macos-')}}
-      run: |
-         cat  /Users/runner/.cpanm/work/*/build.log
-
-    - name: Run tests
-      env:
-        AUTHOR_TESTING: 1
-        RELEASE_TESTING: 1
-      run: |
-        perl Makefile.PL
-        make
-        make test
-
+          perl Makefile.PL
+          gmake
+          gmake test
 
